@@ -1,25 +1,21 @@
 import os
-from openai import OpenAI
+from azure.ai.inference import ChatCompletionsClient
+from azure.ai.inference.models import SystemMessage, UserMessage
+from azure.core.credentials import AzureKeyCredential
 
-token = os.environ["GITHUB_TOKEN"]
-endpoint = "https://models.github.ai/inference"
-model_name = "openai/gpt-4o-mini"
+endpoint = os.environ["AZURE_AI_ENDPOINT"]
+model_name = "gpt-4o-mini"
+token = os.environ["AZURE_AI_SECRET"]
 
-client = OpenAI(
-    base_url=endpoint,
-    api_key=token,
+client = ChatCompletionsClient(
+    endpoint=endpoint,
+    credential=AzureKeyCredential(token),
 )
 
-response = client.chat.completions.create(
+response = client.complete(
     messages=[
-        {
-            "role": "system",
-            "content": "You are a helpful assistant.",
-        },
-        {
-            "role": "user",
-            "content": "What is the capital of France?",
-        }
+        SystemMessage("You are a helpful assistant."),
+        UserMessage("What is the capital of France?"),
     ],
     temperature=1.0,
     top_p=1.0,
