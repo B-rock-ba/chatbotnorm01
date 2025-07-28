@@ -146,9 +146,9 @@ def save_csv_summary(conversations: Dict, backup_folder: str):
                 'content_length': len(message.get('content', ''))
             })
     
-    # 요약 CSV 저장
+    # 요약 CSV 저장 (UTF-8 BOM 추가로 Excel 호환성 개선)
     summary_file = os.path.join(backup_folder, "conversation_summary.csv")
-    with open(summary_file, 'w', newline='', encoding='utf-8') as f:
+    with open(summary_file, 'w', newline='', encoding='utf-8-sig') as f:
         if summary_data:
             fieldnames = summary_data[0].keys()
             writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -157,9 +157,9 @@ def save_csv_summary(conversations: Dict, backup_folder: str):
     
     print(f"📊 요약 CSV 저장: {summary_file}")
     
-    # 상세 메시지 CSV 저장
+    # 상세 메시지 CSV 저장 (UTF-8 BOM 추가로 Excel 호환성 개선)
     detailed_file = os.path.join(backup_folder, "detailed_messages.csv")
-    with open(detailed_file, 'w', newline='', encoding='utf-8') as f:
+    with open(detailed_file, 'w', newline='', encoding='utf-8-sig') as f:
         if detailed_data:
             fieldnames = detailed_data[0].keys()
             writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -167,6 +167,55 @@ def save_csv_summary(conversations: Dict, backup_folder: str):
             writer.writerows(detailed_data)
     
     print(f"💬 상세 메시지 CSV 저장: {detailed_file}")
+    
+    # Excel 호환 CSV 파일도 추가로 생성 (CP949 인코딩 - 특수문자 제거)
+    try:
+        # 특수문자를 제거한 데이터 준비
+        safe_summary_data = []
+        for item in summary_data:
+            safe_item = {}
+            for key, value in item.items():
+                if isinstance(value, str):
+                    # 이모지 및 특수문자 제거
+                    safe_value = ''.join(char for char in value if ord(char) < 65536 and char.isprintable() or char.isspace())
+                else:
+                    safe_value = value
+                safe_item[key] = safe_value
+            safe_summary_data.append(safe_item)
+        
+        safe_detailed_data = []
+        for item in detailed_data:
+            safe_item = {}
+            for key, value in item.items():
+                if isinstance(value, str):
+                    # 이모지 및 특수문자 제거
+                    safe_value = ''.join(char for char in value if ord(char) < 65536 and char.isprintable() or char.isspace())
+                else:
+                    safe_value = value
+                safe_item[key] = safe_value
+            safe_detailed_data.append(safe_item)
+        
+        summary_file_excel = os.path.join(backup_folder, "conversation_summary_excel.csv")
+        with open(summary_file_excel, 'w', newline='', encoding='cp949', errors='ignore') as f:
+            if safe_summary_data:
+                fieldnames = safe_summary_data[0].keys()
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(safe_summary_data)
+        
+        detailed_file_excel = os.path.join(backup_folder, "detailed_messages_excel.csv")
+        with open(detailed_file_excel, 'w', newline='', encoding='cp949', errors='ignore') as f:
+            if safe_detailed_data:
+                fieldnames = safe_detailed_data[0].keys()
+                writer = csv.DictWriter(f, fieldnames=fieldnames)
+                writer.writeheader()
+                writer.writerows(safe_detailed_data)
+        
+        print(f"📊 Excel용 CSV 저장: {summary_file_excel}")
+        print(f"💬 Excel용 CSV 저장: {detailed_file_excel}")
+        
+    except Exception as e:
+        print(f"⚠️ CP949 인코딩 실패: {str(e)} - UTF-8 BOM 파일을 사용하세요")
 
 def save_excel_report(conversations: Dict, backup_folder: str):
     """Excel 형태로 분석 리포트 저장"""
@@ -262,9 +311,15 @@ def main():
     print("\n생성된 파일:")
     print("  📄 all_conversations.json - 전체 데이터 JSON")
     print("  📁 participants/ - 참여자별 개별 JSON 파일들")
-    print("  📊 conversation_summary.csv - 참여자 요약 CSV")
-    print("  💬 detailed_messages.csv - 상세 메시지 CSV")
-    print("  📈 conversation_report.xlsx - Excel 분석 리포트")
+    print("  📊 conversation_summary.csv - 참여자 요약 CSV (UTF-8 BOM)")
+    print("  💬 detailed_messages.csv - 상세 메시지 CSV (UTF-8 BOM)")
+    print("  📊 conversation_summary_excel.csv - Excel용 요약 CSV (CP949)")
+    print("  � detailed_messages_excel.csv - Excel용 상세 CSV (CP949)")
+    print("  �📈 conversation_report.xlsx - Excel 분석 리포트")
+    print("\n💡 한글 깨짐 방지:")
+    print("  - 권장: UTF-8 BOM 파일 (.csv)을 Excel에서 열기")
+    print("  - Excel: '데이터' → '텍스트/CSV에서' → 'UTF-8' 선택")
+    print("  - _excel.csv 파일은 이모지가 제거되어 호환성이 떨어질 수 있음")
 
 if __name__ == "__main__":
     main()

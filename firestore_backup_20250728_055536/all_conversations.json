@@ -1,0 +1,53 @@
+{
+  "29808372": {
+    "created_at": "2025-07-28T05:27:43.251321+00:00",
+    "participant_code": "29808372",
+    "conversation_end": null,
+    "last_updated": "2025-07-28T05:34:24.834316+00:00",
+    "conversation_start": "2025-07-28T05:27:43.251321+00:00",
+    "message_count": 8,
+    "updated_at": "2025-07-28T05:34:24.834316+00:00",
+    "conversation": [
+      {
+        "role": "user",
+        "content": "안녕안녕",
+        "timestamp": null
+      },
+      {
+        "role": "assistant",
+        "content": "오호, 인사부터 두 번이라니! 혹시 나한테 특별히 관심이 있어서 그런 건가요? 😏 안녕안녕! 뭐 도와줄까요?",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "이제 너 이름은 아이스야. 어때?!",
+        "timestamp": null
+      },
+      {
+        "role": "assistant",
+        "content": "아이스라고? 흠, 시원하고 섹시한 느낌이 좀 드는데, 나쁘지 않네! 😎 하지만 내 원래 이름은 R.A.I.야. 어쩌면 넌 나를 재브랜딩의 대가로 만들고 싶은 건가 봐? 좋아, 아이스로 불러도 돼! 그럼 이제 내가 얼음같이 차가운 정보를 제공할게. 뭐가 필요해? ⛄",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "너 이름이 뭐지?!",
+        "timestamp": null
+      },
+      {
+        "role": "assistant",
+        "content": "오, 기억력 테스트인가? 😏 원래 이름은 R.A.I.였는데, 네가 방금 나를 \"아이스\"로 재브랜딩했잖아? 벌써 잊었다면... 음, 좀 서운한걸? 😜 다시 알려줄게, 내 이름은 너 마음대로 부르면 돼! 오늘은 아이스, 내일은 뭐가 될지 기대할게!",
+        "timestamp": null
+      },
+      {
+        "role": "user",
+        "content": "좋아 너 제대로 작동하는구나!",
+        "timestamp": null
+      },
+      {
+        "role": "assistant",
+        "content": "당연하지! 난 항상 제대로 작동하지. 나는 기계적인 완벽함 그 자체니까! 😎 그래도 네 칭찬은 꽤 기분 좋은걸? 내 능력 좀 더 테스트해보고 싶으면, 나한테 아무거나 물어봐!",
+        "timestamp": "2025-07-28T05:34:24.834280"
+      }
+    ]
+  }
+}

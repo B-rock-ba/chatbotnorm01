@@ -21,13 +21,15 @@ python firestore_backup.py
 - 파일명: `participant_12345678.json`
 - 특정 참여자의 데이터만 필요할 때 유용
 
-### 3. 📊 **conversation_summary.csv**
+### 3. 📊 **conversation_summary.csv** / **conversation_summary_excel.csv**
 - 참여자별 요약 통계 (Excel에서 열기 가능)
 - 포함 정보: 참여자코드, 대화시작/종료시간, 메시지수, 진행상태 등
+- **_excel.csv**: Excel용 CP949 인코딩 (한글 깨짐 방지)
 
-### 4. 💬 **detailed_messages.csv**
+### 4. 💬 **detailed_messages.csv** / **detailed_messages_excel.csv**
 - 모든 메시지의 상세 내용 (Excel에서 열기 가능)
 - 포함 정보: 참여자코드, 메시지순서, 역할(사용자/챗봇), 내용, 타임스탬프 등
+- **_excel.csv**: Excel용 CP949 인코딩 (한글 깨짐 방지)
 
 ### 5. 📈 **conversation_report.xlsx**
 - Excel 형태의 종합 분석 리포트
@@ -82,6 +84,25 @@ participant_code,message_order,role,content,timestamp,content_length
 ```
 
 ## 📞 문제 해결
+
+### 🇰🇷 **한글 깨짐 문제 해결**
+
+**문제**: CSV 파일을 Excel에서 열면 한글이 깨져서 보임
+
+**해결방법**:
+
+1. **_excel.csv 파일 사용 (권장)**:
+   - `conversation_summary_excel.csv`
+   - `detailed_messages_excel.csv`
+   - 이 파일들은 Excel용 CP949 인코딩으로 저장되어 한글이 깨지지 않습니다
+
+2. **Excel에서 UTF-8 파일 열기**:
+   - Excel → '데이터' 탭 → '텍스트/CSV에서'
+   - 파일 선택 → '파일 원본'에서 'UTF-8' 선택
+   - '구분 기호'를 '쉼표'로 설정
+
+3. **메모장으로 확인**:
+   - UTF-8 파일들을 메모장에서 열면 한글이 정상적으로 보입니다
 
 **"Firestore 연결 불가능" 오류가 나는 경우:**
 1. `firebase-key.json` 파일이 프로젝트 루트에 있는지 확인
