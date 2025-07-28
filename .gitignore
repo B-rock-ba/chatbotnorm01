@@ -205,3 +205,10 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+
+# 로그 데이터는 개인정보이므로 제외
+logs/
+
+# 임시 파일
+t.py
+__pycache__/

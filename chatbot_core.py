@@ -73,9 +73,9 @@ def get_completion(user_text: str, history: List[dict]) -> str:
     """
     history.append(UserMessage(content=user_text))
 
-    response = client.chat.completions.create(
-        model=MODEL,
+    response = client.complete(
         messages=[SystemMessage(content=DEFAULT_SYSTEM_PROMPT)] + history,
+        model=MODEL,
         temperature=0.9,          # a bit more randomness for cheeky tone
         top_p=0.95,
         max_tokens=1024,
