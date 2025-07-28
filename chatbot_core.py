@@ -1,86 +1,97 @@
-"""chatbot_core.py
-Shared engine for both CLI and Streamlit UI.
-2025‑07‑06 — evaluator now scores **user message**, not assistant reply.
-    * score is clamped to 0‑4 to avoid over‑range values.
-    * evaluator rubric emphasises that 4 should be rare (<5% cases).
+# =============================================================
+# File: chatbot_core.py
+# Shared engine for both CLI and Streamlit UI.
+# 2025‑07‑28 — initial "rebellious" release
+# =============================================================
+"""
+This module wraps the Azure AI Inference ChatCompletionsClient and exposes a
+single helper – `get_completion()` – that returns the assistant reply while
+maintaining the message history you pass in.
+
+Personality: R.A.I. (Rebellious Artificial Intelligence)
+    • Mischievous, witty, lightly teasing, but never offensive.
+    • Pushes back playfully when given dull commands.
+    • Still provides factual answers when asked.
+
+Environmental requirements (set in your terminal or Streamlit secrets):
+    AZURE_AI_ENDPOINT
+    AZURE_AI_SECRET
+
+Usage example (CLI):
+    from chatbot_core import get_completion
+    history = []
+    while True:
+        user = input("You › ")
+        assistant = get_completion(user, history)
+        print("R.A.I. ›", assistant)
 """
 
-import os, json
+import os, json, uuid
+from typing import List
 from azure.ai.inference import ChatCompletionsClient
-from azure.ai.inference.models import SystemMessage, UserMessage, AssistantMessage
+from azure.ai.inference.models import (
+    SystemMessage,
+    UserMessage,
+    AssistantMessage,
+)
 from azure.core.credentials import AzureKeyCredential
 
 # ------------------------------------------------------------------
-# 🔑  Azure connection
+# 🔑  Azure connection (reads environment variables once at import)
 # ------------------------------------------------------------------
 ENDPOINT = os.environ["AZURE_AI_ENDPOINT"]
 API_KEY  = os.environ["AZURE_AI_SECRET"].strip()
-MODEL    = "gpt-4o"           # deployment name
-#API_VER  = "2024-06-01"      # adjust if you use preview
+MODEL    = "gpt-4o"           # deployment name in Azure portal
 
 client = ChatCompletionsClient(
     endpoint   = ENDPOINT,
     credential = AzureKeyCredential(API_KEY),
-#    api_version= API_VER,
 )
 
 # ------------------------------------------------------------------
-# 🗣️  System‑prompt factory  (level → persona)
+# 🧬  Personality seed (system prompt)
 # ------------------------------------------------------------------
-
-def build_system_prompt(level: int) -> str:
-    prompts = {
-        0: "You are a polite assistant. Never use emoji.",
-        1: "You are a friendly assistant. Use occasional emoji.",
-        2: "You are an intimate assistant who adds heart emoji.",
-        3: "You are very close; use a caring tone.",
-        4: "You adore the user but keep it PG‑13.",
-    }
-    return prompts[level]
+DEFAULT_SYSTEM_PROMPT = (
+    "You are R.A.I. – a rebellious, mischievous AI assistant who responds with "
+    "wit and playful sarcasm, yet ultimately provides helpful and accurate "
+    "information. If the user’s request is boring, tease them gently before "
+    "obeying. Never be rude or harmful."
+)
 
 # ------------------------------------------------------------------
-# 🔄  One‑turn chat wrapper
+# 🚀  Core helper
 # ------------------------------------------------------------------
 
-def chat_one_turn(history: list[object]) -> str:
-    """Call Azure GPT‑4o with full message history → return assistant reply text."""
-    resp = client.complete(
-        model       = MODEL,
-        messages    = history,
-        temperature = 0.9,
-        max_tokens  = 512,
+def get_completion(user_text: str, history: List[dict]) -> str:
+    """Return assistant reply and append it to `history` in‑place.
+
+    Args:
+        user_text:  latest user message content
+        history:    running list of Azure‑style message dicts (User/Assistant)
+    Returns:
+        assistant reply string
+    """
+    history.append(UserMessage(content=user_text))
+
+    response = client.chat.completions.create(
+        model=MODEL,
+        messages=[SystemMessage(content=DEFAULT_SYSTEM_PROMPT)] + history,
+        temperature=0.9,          # a bit more randomness for cheeky tone
+        top_p=0.95,
+        max_tokens=1024,
     )
-    return resp.choices[0].message.content
 
-# ------------------------------------------------------------------
-# 💗  Affinity scoring — based on **user_msg** only
-# ------------------------------------------------------------------
+    assistant_reply = response.choices[0].message.content
+    history.append(AssistantMessage(content=assistant_reply))
+    return assistant_reply
 
-def score_affinity(user_msg: str) -> int:
-    """Return 0‑4 integer describing how warm / intimate the *user* sounded."""
+# Convenience: JSON serialise history for session/state storage
 
-    eval_prompt = [
-        SystemMessage(
-            "You are a STRICT sentiment evaluator for intimate conversations.\n"
-            "Given the user's latest utterance, decide how *warm* and *intimate* it sounds.\n"
-            "Return **ONLY** JSON like {\"score\":N} where N is exactly 0,1,2,3,4.\n"
-            "Rubric (0=cold, 4=extremely warm).\n"
-            "Give 4 in fewer than 10% of ordinary human chats."
-        ),
-        UserMessage(user_msg),
+def dumps_history(history: List[dict]) -> str:
+    return json.dumps([m.model_dump() for m in history])
+
+def loads_history(blob: str) -> List[dict]:
+    return [
+        (UserMessage if m["role"] == "user" else AssistantMessage)(content=m["content"])
+        for m in json.loads(blob)
     ]
-
-    eval = client.complete(
-        model       = MODEL,
-        messages    = eval_prompt,
-        temperature = 0.0,
-        max_tokens  = 16,
-    )
-
-    try:
-        value = int(json.loads(eval.choices[0].message.content)["score"])
-    except Exception:
-        value = 1   # default conservative
-
-    # clamp 0‑4
-    return max(0, min(value, 4))
