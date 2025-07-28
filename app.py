@@ -15,11 +15,30 @@ from datetime import datetime
 from chatbot_core import get_completion, dumps_history, loads_history, client, DEFAULT_SYSTEM_PROMPT, MODEL
 from azure.ai.inference.models import SystemMessage, UserMessage, AssistantMessage
 
+# Firestore 핸들러를 안전하게 import
+try:
+    from firestore_handler import firestore_handler
+    FIRESTORE_AVAILABLE = True
+except Exception as e:
+    print(f"⚠️ Firestore 모듈 로드 실패: {str(e)}")
+    firestore_handler = None
+    FIRESTORE_AVAILABLE = False
+
 st.set_page_config(page_title="R.A.I. – Rebellious Chatbot", page_icon="😈", layout="centered")
 
 # --- 로그 저장 함수 --------------------------------------------------------
 def save_conversation_log(participant_code, history, conversation_end=False):
-    """참여자별 대화 로그를 저장하는 함수"""
+    """참여자별 대화 로그를 저장하는 함수 (로컬 + Firestore)"""
+    # 로컬 JSON 파일 저장
+    local_success = save_local_log(participant_code, history, conversation_end)
+    
+    # Firestore 저장
+    firestore_success = save_firestore_log(participant_code, history, conversation_end)
+    
+    return local_success or firestore_success
+
+def save_local_log(participant_code, history, conversation_end=False):
+    """로컬 JSON 파일에 저장"""
     try:
         # logs 디렉토리가 없으면 생성
         os.makedirs("logs", exist_ok=True)
@@ -63,11 +82,47 @@ def save_conversation_log(participant_code, history, conversation_end=False):
             
         return True
     except Exception as e:
-        st.error(f"로그 저장 중 오류 발생: {str(e)}")
+        st.error(f"로컬 로그 저장 중 오류 발생: {str(e)}")
+        return False
+
+def save_firestore_log(participant_code, history, conversation_end=False):
+    """Firestore에 저장"""
+    try:
+        # Firestore가 사용 가능하지 않으면 조용히 실패
+        if not FIRESTORE_AVAILABLE or not firestore_handler or not firestore_handler.is_available():
+            return False
+            
+        # 대화 데이터 변환
+        conversation_data = []
+        for msg in history:
+            if isinstance(msg, SystemMessage):
+                continue
+            conversation_data.append({
+                "role": msg.role,
+                "content": msg.content,
+                "timestamp": datetime.now().isoformat() if msg == history[-1] else None
+            })
+        
+        # Firestore에 저장
+        return firestore_handler.save_conversation(participant_code, conversation_data, conversation_end)
+        
+    except Exception as e:
+        # 오류를 출력하지만 앱은 계속 실행
+        print(f"Firestore 저장 중 오류 발생: {str(e)}")
         return False
 
 def get_conversation_stats():
-    """전체 대화 통계를 반환하는 함수"""
+    """전체 대화 통계를 반환하는 함수 (Firestore 우선, 로컬 백업)"""
+    # Firestore에서 통계 가져오기 시도
+    if FIRESTORE_AVAILABLE and firestore_handler and firestore_handler.is_available():
+        try:
+            firestore_participants, firestore_messages = firestore_handler.get_conversation_stats()
+            if firestore_participants > 0:
+                return firestore_participants, firestore_messages
+        except Exception as e:
+            print(f"Firestore 통계 조회 실패: {str(e)}")
+    
+    # Firestore가 실패하면 로컬 파일에서 통계 가져오기
     try:
         if not os.path.exists("logs"):
             return 0, 0
@@ -110,8 +165,20 @@ with st.sidebar:
     st.divider()
     total_participants, total_messages = get_conversation_stats()
     st.subheader("📊 로그 통계")
+    
+    # Firestore 연결 상태 표시
+    if FIRESTORE_AVAILABLE and firestore_handler and firestore_handler.is_available():
+        st.success("🔥 Firestore 연결됨")
+    else:
+        st.warning("⚠️ Firestore 미연결 (로컬 저장만)")
+    
     st.metric("총 참여자 수", total_participants)
     st.metric("총 메시지 수", total_messages)
+    
+    # Firestore 백업 버튼
+    if FIRESTORE_AVAILABLE and firestore_handler and firestore_handler.is_available():
+        if st.button("💾 Firestore 백업"):
+            firestore_handler.backup_to_local()
     
     st.divider()
     

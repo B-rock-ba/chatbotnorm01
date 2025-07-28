@@ -212,3 +212,7 @@ logs/
 # 임시 파일
 t.py
 __pycache__/
+
+# Firebase 키 파일 (보안상 중요!)
+firebase-key.json
+firestore_backup_*.json
