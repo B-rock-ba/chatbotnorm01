@@ -3,3 +3,5 @@ ipykernel
 openai
 streamlit
 firebase-admin
+pandas
+openpyxl
