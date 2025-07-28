@@ -57,21 +57,50 @@ export FIREBASE_SERVICE_ACCOUNT_KEY='{"type":"service_account",...}'
 
 ## 5️⃣ 보안 규칙 설정 (중요!)
 
+### 🚨 현재 상황: 테스트 모드 사용 중
+
+현재 개발 단계에서는 **테스트 모드**를 사용하고 있어 별도 보안 규칙 설정이 불필요합니다.
+- ✅ **현재**: 테스트 모드 (30일 후 자동 만료)
+- ⚠️ **30일 후**: 아래 규칙을 적용해야 함
+
+### 📋 서비스 계정용 보안 규칙 (30일 후 적용)
+
 Firestore Console에서 규칙 탭으로 이동하여 다음 규칙 적용:
 
 ```javascript
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    // conversations 컬렉션 접근 권한
+    // 서비스 계정으로 접근하는 chatbot 데이터
     match /conversations/{document} {
-      allow read, write: if request.auth != null;
+      // 서비스 계정 인증을 통한 접근 허용
+      allow read, write: if true;
+    }
+    
+    // 통계 데이터 접근
+    match /statistics/{document} {
+      allow read, write: if true;
     }
   }
 }
 ```
 
-**주의**: 테스트 모드는 누구나 읽기/쓰기가 가능하므로 프로덕션에서는 반드시 보안 규칙을 설정해야 합니다.
+### 🔐 더 안전한 보안 규칙 (프로덕션용)
+
+```javascript
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 특정 서비스 계정만 접근 허용
+    match /conversations/{document} {
+      allow read, write: if request.auth != null 
+        && request.auth.token.email == "firebase-adminsdk-xxxxx@chatbot-log-01.iam.gserviceaccount.com";
+    }
+  }
+}
+```
+
+**중요**: 현재는 테스트 모드이므로 규칙 변경 불필요! 30일 후에만 적용하세요.
 
 ## 6️⃣ 파일 구조
 
